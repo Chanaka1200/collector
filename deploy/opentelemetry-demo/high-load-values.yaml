@@ -1,146 +1,92 @@
-# OpenTelemetry Demo - High Load Configuration
-# Targets c5.9xlarge (36 vCPUs) with 70% utilization (~25 cores)
-
-global:
-  logLevel: debug
-  resources:
-    limits:
-      cpu: "36"
-      memory: "72Gi"
-
-# Enhanced Load Generation Configuration
-loadGenerator:
-  replicas: 4  # Distribute load generation across multiple pods
-  resources:
-    requests:
-      cpu: "4"
-      memory: "4Gi"
-    limits:
-      cpu: "8"
-      memory: "8Gi"
-  config:
-    frontendUsersPerSecond: 1000  # Drastically increased from default 10
-    checkoutUsersPerSecond: 400    # Increased from default 1
-    maxVirtualUsers: 10000        # Increased concurrent user capacity
-    rampUpTimeSeconds: 900        # 15 minute ramp up period
-    testDurationSeconds: 3600     # 1 hour test duration
-    thinkTimeMilliseconds: 100    # Reduced think time between actions
-    addToCartPercentage: 30       # More cart operations
-    checkoutPercentage: 20       # More checkouts
-
-# Frontend Service Configuration (typically first bottleneck)
-frontend:
-  replicas: 6
-  resources:
-    requests:
-      cpu: "2"
-      memory: "2Gi"
-    limits:
-      cpu: "4"
-      memory: "4Gi"
-  autoscaling:
+components:
+  load-generator:
     enabled: true
-    minReplicas: 6
-    maxReplicas: 12
-    targetCPUUtilizationPercentage: 80
-
-# Backend Services Configuration (scale based on expected bottlenecks)
-productcatalogservice:
-  replicas: 4
-  resources:
-    requests:
-      cpu: "3"
-      memory: "4Gi"
-    limits:
-      cpu: "6"
-      memory: "8Gi"
-
-cartservice:
-  replicas: 4
-  resources:
-    requests:
-      cpu: "2"
-      memory: "4Gi"
-    limits:
-      cpu: "4"
-      memory: "8Gi"
-
-checkoutservice:
-  replicas: 4
-  resources:
-    requests:
-      cpu: "2"
-      memory: "2Gi"
-    limits:
-      cpu: "4"
-      memory: "4Gi"
-
-recommendationservice:
-  replicas: 4
-  resources:
-    requests:
-      cpu: "2"
-      memory: "2Gi"
-    limits:
-      cpu: "4"
-      memory: "4Gi"
-
-# Database Services Configuration
-redis:
-  resources:
-    requests:
-      cpu: "4"
-      memory: "16Gi"
-    limits:
-      cpu: "8"
-      memory: "32Gi"
-  master:
-    replicas: 3
-
-postgresql:
-  primary:
+    replicas: 4  # Increased from default 1
     resources:
-      requests:
-        cpu: "4"
-        memory: "16Gi"
       limits:
-        cpu: "8"
-        memory: "32Gi"
+        cpu: '8'
+        memory: 8Gi
+      requests:
+        cpu: '4'
+        memory: 4Gi
+    useDefault:
+      env: true
+    envOverrides:
+      - name: LOCUST_CSV
+        value: "/tmp/locust_results/stats"
+      - name: LOCUST_CSV_FULL_HISTORY
+        value: "true"
+      - name: LOCUST_HEADLESS
+        value: "true"
+      - name: LOCUST_USERS
+        value: "4000"
+      - name: LOCUST_SPAWN_RATE
+        value: "6"
+      - name: LOCUST_BROWSER_TRAFFIC_ENABLED
+        value: "false"
+      - name: LOCUST_PROCESSES
+        value: "8"
+      
+      
+    # Create a volume mount for the CSV files
+    mountedEmptyDirs:
+      - name: locust-results
+        mountPath: /tmp/locust_results
+  
+  frontend:
+      replicas: 6
+      resources:
+        limits:
+          cpu: "4"
+          memory: "4Gi"
+        requests:
+          cpu: "2"
+          memory: "2Gi"
 
-# Observability Components Configuration (scale up to handle increased load)
+  product-catalog:
+      replicas: 4
+      resources:
+        limits:
+          cpu: "6"
+          memory: "8Gi"
+        requests:
+          cpu: "3"
+          memory: "4Gi"
+  
+  cart:
+      replicas: 4
+      resources:
+        limits:
+          cpu: "4"
+          memory: "8Gi"
+        requests:
+          cpu: "2"
+          memory: "4Gi"
+  
 opentelemetry-collector:
-  mode: deployment
-  replicas: 3
   resources:
-    requests:
-      cpu: "2"
-      memory: "4Gi"
     limits:
       cpu: "4"
       memory: "8Gi"
+    requests:
+      cpu: "2"
+      memory: "4Gi"                            
 
 prometheus:
   server:
     resources:
-      requests:
-        cpu: "4"
-        memory: "16Gi"
       limits:
         cpu: "8"
         memory: "32Gi"
+      requests:
+        cpu: "4"
+        memory: "16Gi"
 
 grafana:
   resources:
-    requests:
-      cpu: "2"
-      memory: "4Gi"
     limits:
       cpu: "4"
       memory: "8Gi"
-
-# Feature Flags for High Load Scenario
-featureFlags:
-  enableAdvancedLoadPatterns: true
-  enableStressTestingMode: true
-  cacheEnabled: true
-  highAvailabilityMode: true
+    requests:
+      cpu: "2"
+      memory: "4Gi"
