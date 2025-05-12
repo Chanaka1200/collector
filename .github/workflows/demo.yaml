@@ -122,7 +122,7 @@ jobs:
       #### Install OpenTelemetry Demo
       - name: (workload) Install OpenTelemetry Demo
         run: |
-          helm install $RELEASE_NAME open-telemetry/opentelemetry-demo -f deploy/opentelemetry-demo/values.yaml
+          helm install $RELEASE_NAME open-telemetry/opentelemetry-demo -f deploy/opentelemetry-demo/high-load-values.yaml
 
       #### Install dependencies
 
